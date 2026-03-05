@@ -1,0 +1,12 @@
+flask
+flask-cors
+gunicorn
+numpy
+pandas
+pyarrow
+flask
+flask-cors
+numpy
+pandas
+pyarrow
+gunicorn

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: journal-ranking-dashboard
+    env: python
+    plan: free
+    buildCommand: pip install -r deploy_render/requirements.txt
+    startCommand: gunicorn deploy_render.app:app
+    envVars:
+      - key: DATA_DIR
+        value: /opt/render/project/src/Transition_matrix

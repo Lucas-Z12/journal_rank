@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and local runtime artifacts
+*.log
+
+# Optional: ignore local environment files
+.env
+
+# Optional: if future data becomes large, uncomment below
+# Transition_matrix/

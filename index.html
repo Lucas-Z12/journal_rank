@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal Ranking Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1f2937;
+            position: relative;
+        }
+        body::before, body::after {
+            content: "";
+            position: fixed;
+            border-radius: 999px;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.35;
+        }
+        body::before {
+            width: 260px;
+            height: 260px;
+            background: #7dd3fc;
+            top: -70px;
+            left: -40px;
+        }
+        body::after {
+            width: 300px;
+            height: 300px;
+            background: #c084fc;
+            bottom: -90px;
+            right: -60px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 24px 70px rgba(31, 41, 55, 0.28);
+            border: 1px solid rgba(255, 255, 255, 0.55);
+        }
+        header {
+            background: linear-gradient(135deg, #1e293b, #2563eb 55%, #14b8a6);
+            color: #fff;
+            padding: 28px 32px;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            letter-spacing: 0.3px;
+            text-align: center;
+        }
+        .subtitle {
+            /* font-size: 1.2rem; */
+            opacity: 0.9;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+        .method-description {
+            margin-bottom: 18px;
+            font-size: 0.96rem;
+            color: rgba(255, 255, 255, 0.92);
+            font-style: italic;
+            text-align: center;
+        }
+        .method-description a {
+            color: #fde68a;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            font-weight: 600;
+        }
+        .method-description a:hover {
+            color: #fef3c7;
+        }
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+        }
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 12px;
+            padding: 8px 10px;
+            backdrop-filter: blur(6px);
+        }
+        .filter-item label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .field-checklist {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 10px 12px;
+            backdrop-filter: blur(6px);
+        }
+        .field-checklist-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-right: 4px;
+            color: #fff;
+        }
+        .field-check-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #fff;
+            font-size: 0.9rem;
+            background: transparent;
+            border: none;
+            border-radius: 999px;
+            padding: 4px 10px;
+        }
+        .field-check-item input {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            border-radius: 3px;
+            position: relative;
+            cursor: pointer;
+        }
+        .field-check-item input:checked {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+        .field-check-item input:checked::after {
+            content: "";
+            position: absolute;
+            left: 4px;
+            top: 1px;
+            width: 4px;
+            height: 8px;
+            border: solid #000;
+            border-width: 0 2.6px 2.6px 0;
+            transform: rotate(45deg);
+        }
+        select {
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            min-width: 110px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        select:hover {
+            background: rgba(255, 255, 255, 0.28);
+        }
+        select:focus {
+            border-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+        }
+        select option {
+            color: #111827;
+            background: #fff;
+        }
+        select[multiple] {
+            min-width: 180px;
+            padding: 6px 8px;
+        }
+        .year-hint {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 24px;
+        }
+        .loading {
+            display: none;
+            margin-bottom: 14px;
+            color: #2563eb;
+            font-weight: 600;
+        }
+        .table-wrap {
+            border: 1px solid #dbe4f0;
+            border-radius: 12px;
+            overflow: visible;
+            max-height: none;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(135deg, #0f172a, #334155);
+            color: #fff;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 12px 10px;
+            white-space: nowrap;
+        }
+        tbody td {
+            border-top: 1px solid #e5e7eb;
+            padding: 10px;
+            font-size: 0.92rem;
+            vertical-align: top;
+            word-break: break-word;
+            text-align: center;
+        }
+        tbody tr:nth-child(even) {
+            background: #f8fbff;
+        }
+        tbody tr:hover {
+            background: #eef6ff;
+            transition: background 0.18s ease;
+        }
+        .rank-pill {
+            display: inline-flex;
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.92rem;
+            margin: 0 auto;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        .rank-pill.top-rank {
+            background: #3498db;
+            color: #fff;
+        }
+        .rank-pill.normal-rank {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+        .field-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.86rem;
+            border: 1px solid transparent;
+        }
+        .field-accounting { background: linear-gradient(135deg, #e8f4fc, #bbdefb); color: #1565c0; border-color: #90caf9; }
+        .field-finance { background: linear-gradient(135deg, #e8f6f3, #c8e6c9); color: #2e7d32; border-color: #a5d6a7; }
+        .field-econometrics { background: linear-gradient(135deg, #ede7f6, #d1c4e9); color: #512da8; border-color: #b39ddb; }
+        .field-economics { background: linear-gradient(135deg, #fef9e7, #ffecb3); color: #ef6c00; border-color: #ffe082; }
+        .field-marketing { background: linear-gradient(135deg, #f4ecf7, #e1bee7); color: #7b1fa2; border-color: #ce93d8; }
+        .field-management { background: linear-gradient(135deg, #fdebd0, #ffcc80); color: #e65100; border-color: #ffb74d; }
+        .field-information-systems { background: linear-gradient(135deg, #eaf2f8, #bbdefb); color: #1565c0; border-color: #90caf9; }
+        .field-statistics { background: linear-gradient(135deg, #e0f7fa, #b2ebf2); color: #00838f; border-color: #80deea; }
+        .field-strategy { background: linear-gradient(135deg, #fadbd8, #ffcdd2); color: #c62828; border-color: #ef9a9a; }
+        .field-default { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+        .journal-cell {
+            font-weight: 600;
+            color: #1f2937;
+            text-align: left;
+        }
+        .ci-pill {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-family: "Consolas", "Courier New", monospace;
+            color: #1d4ed8;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+        }
+        .error {
+            margin-top: 12px;
+            color: #b91c1c;
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: none;
+        }
+        .invalid-warning {
+            margin-top: 12px;
+            color: #9a3412;
+            background: #ffedd5;
+            border: 1px solid #fdba74;
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: none;
+        }
+        .acknowledgement {
+            margin-top: 14px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            font-size: 0.92rem;
+            color: #334155;
+        }
+        .footer-meta {
+            margin-top: 16px;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 12px;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.5rem; }
+            .content { padding: 14px; }
+            header { padding: 20px 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Citation Based Ranking Inference for Business Journals</h1>
+            <p class="subtitle">Journal rankings with confidence intervals covering 9 business fields</p>
+            <p class="method-description">
+                (The ranking estimation and inferences are obtained by
+                <a href="https://pubsonline.informs.org/doi/10.1287/opre.2023.0439" target="_blank">Spectral Method</a>
+                [<a href="https://arxiv.org/pdf/2308.02918" target="_blank">PDF</a>])
+            </p>
+            <div class="filters">
+                <div class="filter-item">
+                    <label for="start-year">Start</label>
+                    <select id="start-year"></select>
+                </div>
+                <div class="filter-item">
+                    <label for="end-year">End</label>
+                    <select id="end-year"></select>
+                </div>
+            </div>
+            <div class="field-checklist" id="field-checklist">
+                <span class="field-checklist-title">Field</span>
+            </div>
+            <div class="year-hint">
+                Please select at least a two-year span.
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="loading" id="loading">Loading data, please wait...</div>
+            <div class="table-wrap">
+                <table id="data-table">
+                    <thead><tr id="table-head-row"></tr></thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+            <div class="error" id="error"></div>
+            <div class="invalid-warning" id="invalid-warning"></div>
+            <div class="acknowledgement" id="acknowledgement">
+                Acknowledgement: We thank all contributors to the paper and this website.
+            </div>
+            <div class="footer-meta">
+                Last updated: <span id="updated-at">2026-03-05</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://127.0.0.1:5000";
+        const startYearEl = document.getElementById("start-year");
+        const endYearEl = document.getElementById("end-year");
+        const fieldChecklistEl = document.getElementById("field-checklist");
+        const updatedAtEl = document.getElementById("updated-at");
+        const loadingEl = document.getElementById("loading");
+        const errorEl = document.getElementById("error");
+        const invalidWarningEl = document.getElementById("invalid-warning");
+        const tableWrapEl = document.querySelector(".table-wrap");
+        const headRowEl = document.getElementById("table-head-row");
+        const bodyEl = document.getElementById("table-body");
+        const fixedUpdatedAt = "2026-03-05";
+        const JOURNAL_NAME_MAP = {
+            AR: "Accounting Review",
+            JAE: "Journal of Accounting and Economics",
+            JAR: "Journal of Accounting Research",
+            AER: "American Economic Review",
+            E: "Econometrica",
+            EJ: "Economic Journal",
+            IER: "International Economic Review",
+            JE: "Journal of Econometrics",
+            JET: "Journal of Economic Theory",
+            JIE: "Journal of International Economics",
+            JLE: "Journal of Labor Economics",
+            JME: "Journal of Monetary Economics",
+            JPE_1: "Journal of Public Economics",
+            JPE_2: "Journal of Political Economy",
+            QJE: "Quarterly Journal of Economics",
+            RES_1: "Review of Economics and Statistics",
+            RES_2: "Review of Economic Studies",
+            RJE: "Rand Journal of Economics",
+            JF: "Journal of Finance",
+            JFE: "Journal of Financial Economics",
+            JFQA: "Journal of Financial and Quantitative Analysis",
+            RF: "Review of Finance",
+            RFS: "Review of Financial Studies",
+            ISR: "Information Systems Research",
+            JMIS: "Journal of Management Information Systems",
+            MISQ: "MIS Quarterly",
+            JOM: "Journal of Operations Management",
+            MSOM: "Manufacturing and Service Operations Management",
+            MS_1: "Management Science",
+            OR: "Operations Research",
+            POM: "Production and Operations Management",
+            JCR: "Journal of Consumer Research",
+            JM: "Journal of Marketing",
+            JMR: "Journal of Marketing Research",
+            MS_2: "Marketing Science",
+            AAS: "Annals of Applied Statistics",
+            AS: "Annals of Statistics",
+            B: "Biometrika",
+            JASA: "Journal of the American Statistical Association",
+            JMLR: "Journal of Machine Learning Research",
+            JRSS: "Journal of the Royal Statistical Society, Series B",
+            AMJ: "Academy of Management Journal",
+            AMR: "Academy of Management Review",
+            ASQ: "Administrative Science Quarterly",
+            JAP: "Journal of Applied Psychology",
+            SMJ: "Strategic Management Journal"
+        };
+
+        let isLoading = false;
+
+        function formatDateTime(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, "0");
+            const d = String(date.getDate()).padStart(2, "0");
+            const hh = String(date.getHours()).padStart(2, "0");
+            const mm = String(date.getMinutes()).padStart(2, "0");
+            const ss = String(date.getSeconds()).padStart(2, "0");
+            return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+        }
+
+        function fillYearOptions() {
+            for (let y = 2010; y <= 2024; y++) {
+                const opt1 = document.createElement("option");
+                opt1.value = String(y);
+                opt1.textContent = String(y);
+                startYearEl.appendChild(opt1);
+
+                const opt2 = document.createElement("option");
+                opt2.value = String(y);
+                opt2.textContent = String(y);
+                endYearEl.appendChild(opt2);
+            }
+            startYearEl.value = "2020";
+            endYearEl.value = "2024";
+        }
+
+        function fillFieldOptions(fields) {
+            fieldChecklistEl.innerHTML = '<span class="field-checklist-title">Field</span>';
+
+            const allItem = document.createElement("label");
+            allItem.className = "field-check-item";
+            allItem.innerHTML = `
+                <input type="checkbox" value="all" checked>
+                <span>All</span>
+            `;
+            fieldChecklistEl.appendChild(allItem);
+
+            fields.forEach((f) => {
+                const item = document.createElement("label");
+                item.className = "field-check-item";
+                item.innerHTML = `
+                    <input type="checkbox" value="${f}">
+                    <span>${formatFieldDisplay(f)}</span>
+                `;
+                fieldChecklistEl.appendChild(item);
+            });
+        }
+
+        function normalizeFieldSelection() {
+            const checkboxes = Array.from(
+                fieldChecklistEl.querySelectorAll('input[type="checkbox"]')
+            );
+            const allCheckbox = checkboxes.find((cb) => cb.value === "all");
+            const normalBoxes = checkboxes.filter((cb) => cb.value !== "all");
+            const selectedNormals = normalBoxes.filter((cb) => cb.checked);
+
+            if (selectedNormals.length === 0) {
+                if (allCheckbox) allCheckbox.checked = true;
+                return;
+            }
+            if (allCheckbox) allCheckbox.checked = false;
+        }
+
+        function getSelectedFields() {
+            normalizeFieldSelection();
+            const checkboxes = Array.from(
+                fieldChecklistEl.querySelectorAll('input[type="checkbox"]')
+            );
+            const selected = checkboxes.filter((cb) => cb.checked).map((cb) => cb.value);
+            if (selected.length === 0 || selected.includes("all")) {
+                return ["all"];
+            }
+            return selected;
+        }
+
+        function handleFieldChecklistChange(event) {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") return;
+
+            const checkboxes = Array.from(
+                fieldChecklistEl.querySelectorAll('input[type="checkbox"]')
+            );
+            const allCheckbox = checkboxes.find((cb) => cb.value === "all");
+            const normalBoxes = checkboxes.filter((cb) => cb.value !== "all");
+
+            if (target.value === "all" && target.checked) {
+                normalBoxes.forEach((cb) => {
+                    cb.checked = false;
+                });
+            } else if (target.value !== "all" && target.checked && allCheckbox) {
+                allCheckbox.checked = false;
+            }
+
+            const anyNormalChecked = normalBoxes.some((cb) => cb.checked);
+            if (!anyNormalChecked && allCheckbox) {
+                allCheckbox.checked = true;
+            }
+
+            loadData();
+        }
+
+        function normalizeYearOrder() {
+            const s = Number(startYearEl.value);
+            const e = Number(endYearEl.value);
+            if (s > e) {
+                endYearEl.value = String(s);
+            }
+        }
+
+        function getOrderedColumns(columns) {
+            const filtered = (columns || []).filter(
+                (col) => col !== "start_year" && col !== "end_year"
+            );
+            const renamed = filtered.map((col) => (
+                col === "avg_citation_num" ? "avg_cite_num" : col
+            ));
+            const unique = [...new Set(renamed)];
+            if (!unique.includes("rank")) {
+                return unique;
+            }
+            return ["rank", ...unique.filter((col) => col !== "rank")];
+        }
+
+        function formatColumnLabel(col) {
+            const tokenMap = {
+                avg: "Average",
+                cite: "Cite",
+                cited: "Cited",
+                num: "Number",
+                ci: "Confidence Interval"
+            };
+            if (col === "confidence_interval") return "Confidence Interval";
+            const words = String(col || "").split("_").filter(Boolean);
+            return words
+                .map((word) => tokenMap[word] || (word.charAt(0).toUpperCase() + word.slice(1)))
+                .join(" ");
+        }
+
+        function normalizeFieldClass(value) {
+            const key = String(value || "").toLowerCase().trim().replace(/[_\s]+/g, "-");
+            const known = new Set([
+                "accounting", "finance", "econometrics", "economics", "marketing",
+                "management", "information-systems", "statistics", "strategy"
+            ]);
+            return known.has(key) ? `field-${key}` : "field-default";
+        }
+
+        function formatFieldDisplay(value) {
+            const words = String(value || "")
+                .trim()
+                .replace(/[_-]+/g, " ")
+                .split(/\s+/)
+                .filter(Boolean);
+            return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+        }
+
+        function toText(v) {
+            if (v === null || v === undefined) return "";
+            if (Array.isArray(v)) return `[${v.join(", ")}]`;
+            if (typeof v === "object") return JSON.stringify(v);
+            return String(v);
+        }
+
+        function getJournalFullName(code) {
+            const key = String(code || "").trim();
+            return JOURNAL_NAME_MAP[key] || key;
+        }
+
+        function formatCell(td, col, value) {
+            const text = toText(value);
+
+            if (col === "rank") {
+                const badge = document.createElement("span");
+                badge.className = "rank-pill";
+                badge.textContent = text;
+                const rankValue = Number(value);
+                if (!Number.isNaN(rankValue) && rankValue <= 3) {
+                    badge.classList.add("top-rank");
+                } else {
+                    badge.classList.add("normal-rank");
+                }
+                td.appendChild(badge);
+                return;
+            }
+
+            if (col === "field") {
+                const badge = document.createElement("span");
+                badge.className = `field-pill ${normalizeFieldClass(value)}`;
+                badge.textContent = formatFieldDisplay(value);
+                td.appendChild(badge);
+                return;
+            }
+
+            if (col === "confidence_interval") {
+                const badge = document.createElement("span");
+                badge.className = "ci-pill";
+                badge.textContent = text;
+                td.appendChild(badge);
+                return;
+            }
+
+            if (col === "journal") {
+                td.classList.add("journal-cell");
+                td.textContent = getJournalFullName(value);
+                return;
+            }
+            td.textContent = text;
+        }
+
+        function renderTable(columns, data) {
+            const visibleColumns = getOrderedColumns(columns);
+            headRowEl.innerHTML = "";
+            bodyEl.innerHTML = "";
+
+            visibleColumns.forEach((col) => {
+                const th = document.createElement("th");
+                th.textContent = formatColumnLabel(col);
+                headRowEl.appendChild(th);
+            });
+
+            if (!data || data.length === 0) {
+                const tr = document.createElement("tr");
+                const td = document.createElement("td");
+                td.colSpan = Math.max(visibleColumns.length, 1);
+                td.textContent = "No data";
+                tr.appendChild(td);
+                bodyEl.appendChild(tr);
+                return;
+            }
+
+            data.forEach((row) => {
+                const tr = document.createElement("tr");
+                visibleColumns.forEach((col) => {
+                    const td = document.createElement("td");
+                    const sourceCol = col === "avg_cite_num" ? "avg_citation_num" : col;
+                    formatCell(td, col, row[sourceCol]);
+                    tr.appendChild(td);
+                });
+                bodyEl.appendChild(tr);
+            });
+        }
+
+        function setLoading(loading) {
+            isLoading = loading;
+            loadingEl.style.display = loading ? "block" : "none";
+        }
+
+        function setError(msg) {
+            if (!msg) {
+                errorEl.style.display = "none";
+                errorEl.textContent = "";
+                return;
+            }
+            errorEl.style.display = "block";
+            errorEl.textContent = msg;
+        }
+
+        function setInvalidWarning(items) {
+            if (!Array.isArray(items) || items.length === 0) {
+                invalidWarningEl.style.display = "none";
+                invalidWarningEl.textContent = "";
+                return;
+            }
+            const displayItems = items.map((item) => getJournalFullName(item));
+            invalidWarningEl.style.display = "block";
+            invalidWarningEl.textContent =
+                `The following journals cannot be ranked due to insufficient comparison counts: ${displayItems.join(", ")}`;
+        }
+
+        async function fetchJSON(url, options) {
+            const resp = await fetch(url, options);
+            const text = await resp.text();
+            let payload = {};
+            try { payload = JSON.parse(text); } catch (e) {}
+            if (!resp.ok) {
+                throw new Error(payload.error || text || `HTTP ${resp.status}`);
+            }
+            return payload;
+        }
+
+        async function loadData() {
+            if (isLoading) return;
+            normalizeYearOrder();
+            setError("");
+            setInvalidWarning([]);
+
+            const startYear = Number(startYearEl.value);
+            const endYear = Number(endYearEl.value);
+            const selectedFields = getSelectedFields();
+            const field = selectedFields.includes("all") ? "all" : selectedFields;
+            if (endYear - startYear < 2) {
+                headRowEl.innerHTML = "";
+                bodyEl.innerHTML = "";
+                tableWrapEl.style.display = "none";
+                setError("The selected period must be greater than or equal to two years.");
+                return;
+            }
+
+            tableWrapEl.style.display = "block";
+            setLoading(true);
+
+            try {
+                const result = await fetchJSON(`${API_BASE}/api/generate-rankings`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        start_year: startYear,
+                        end_year: endYear,
+                        field: field
+                    })
+                });
+
+                if (!result.success) {
+                    throw new Error(result.error || "API returned an unsuccessful response");
+                }
+
+                const columns = Array.isArray(result.columns) ? result.columns : [];
+                const data = Array.isArray(result.data) ? result.data : [];
+                renderTable(columns, data);
+                setInvalidWarning(result.invalid_items);
+            } catch (err) {
+                tableWrapEl.style.display = "none";
+                setError(`Request failed: ${err.message}. Please run python app.py first.`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function init() {
+            fillYearOptions();
+            try {
+                const test = await fetchJSON(`${API_BASE}/api/test`, { method: "GET" });
+                fillFieldOptions(Array.isArray(test.fields) ? test.fields : []);
+            } catch (err) {
+                fillFieldOptions([
+                    "accounting", "econometrics", "economics", "finance",
+                    "information_systems", "management", "marketing", "statistics", "strategy"
+                ]);
+                setError(`Backend connection failed: ${err.message}`);
+            }
+
+            startYearEl.addEventListener("change", loadData);
+            endYearEl.addEventListener("change", loadData);
+            fieldChecklistEl.addEventListener("change", handleFieldChecklistChange);
+            updatedAtEl.textContent = fixedUpdatedAt;
+            loadData();
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+</body>
+</html>
