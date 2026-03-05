@@ -185,8 +185,8 @@ def get_conf_inv(Q_95, index, num_cluster, tran_m, P, sigma_squared_array):
 
         rank_0 = theta_hat_0.sort_values(by="theta_hat", ascending=False)
         rank_0["rank"] = [i + 1 for i in range(len(rank_0))]
-        rank_0["lower_bound"] = ""
-        rank_0["upper_bound"] = ""
+        rank_0["lower_bound"] = np.nan
+        rank_0["upper_bound"] = np.nan
 
         n = len(eff_ind)
         for i in eff_ind:
