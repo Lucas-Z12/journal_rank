@@ -1,6 +1,8 @@
 import os
 import sys
+import threading
 import time
+from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
 
@@ -24,6 +26,43 @@ main = ranking_algorithm.main
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+CACHE_TTL_SECONDS = int(os.environ.get("API_CACHE_TTL_SECONDS", "900"))
+CACHE_MAX_ENTRIES = int(os.environ.get("API_CACHE_MAX_ENTRIES", "128"))
+_RESPONSE_CACHE = OrderedDict()
+_CACHE_LOCK = threading.Lock()
+
+
+def _cache_key(start_year, end_year, field):
+    if field is None:
+        normalized_field = ("all",)
+    elif isinstance(field, list):
+        normalized_field = tuple(sorted(set(field)))
+    else:
+        normalized_field = (field,)
+    return start_year, end_year, normalized_field
+
+
+def _get_cached_response(key):
+    now = time.time()
+    with _CACHE_LOCK:
+        item = _RESPONSE_CACHE.get(key)
+        if item is None:
+            return None
+        ts, payload = item
+        if now - ts > CACHE_TTL_SECONDS:
+            _RESPONSE_CACHE.pop(key, None)
+            return None
+        # Move to end to keep LRU-like behavior.
+        _RESPONSE_CACHE.move_to_end(key)
+        return payload
+
+
+def _set_cached_response(key, payload):
+    with _CACHE_LOCK:
+        _RESPONSE_CACHE[key] = (time.time(), payload)
+        _RESPONSE_CACHE.move_to_end(key)
+        while len(_RESPONSE_CACHE) > CACHE_MAX_ENTRIES:
+            _RESPONSE_CACHE.popitem(last=False)
 
 
 def load_index_html() -> str:
@@ -98,6 +137,11 @@ def generate_rankings():
             )
 
         period = str(start_year) if start_year == end_year else f"{start_year}-{end_year}"
+        request_key = _cache_key(start_year, end_year, field)
+        cached_payload = _get_cached_response(request_key)
+        if cached_payload is not None:
+            return jsonify(cached_payload)
+
         start_time = time.time()
 
         df, invalid_items, fallback_mode = main(
@@ -128,6 +172,7 @@ def generate_rankings():
             "invalid_items": invalid_items,
             "metrics": metrics,
         }
+        _set_cached_response(request_key, response)
         return jsonify(response)
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 500

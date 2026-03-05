@@ -1,5 +1,6 @@
 # algorithm.py
 import math
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -29,6 +30,43 @@ FIELD_MAP = {
 }
 # DATA_DIR = Path("E:/website/Project/Transition_matrix")
 DATA_DIR = Path(r"C:\Users\ADMIN\Desktop\Project_old\Transition_matrix")
+_CACHE_LOCK = threading.Lock()
+_CACHE_DATA_DIR = None
+_PUB_NUM_CACHE = None
+_YEARLY_MATRIX_CACHE = {}
+
+
+def _ensure_cache_scope():
+    global _CACHE_DATA_DIR, _PUB_NUM_CACHE, _YEARLY_MATRIX_CACHE
+    current_data_dir = str(DATA_DIR)
+    with _CACHE_LOCK:
+        if _CACHE_DATA_DIR != current_data_dir:
+            _CACHE_DATA_DIR = current_data_dir
+            _PUB_NUM_CACHE = None
+            _YEARLY_MATRIX_CACHE = {}
+
+
+def _get_pub_num_cached():
+    global _PUB_NUM_CACHE
+    _ensure_cache_scope()
+    with _CACHE_LOCK:
+        if _PUB_NUM_CACHE is None:
+            pub_num_path = DATA_DIR / "pub_num.parquet"
+            if not pub_num_path.exists():
+                raise FileNotFoundError(f"缺少数据文件: {pub_num_path}")
+            _PUB_NUM_CACHE = pd.read_parquet(pub_num_path)
+        return _PUB_NUM_CACHE.copy(deep=True)
+
+
+def _get_yearly_matrix_cached(year):
+    _ensure_cache_scope()
+    with _CACHE_LOCK:
+        if year not in _YEARLY_MATRIX_CACHE:
+            p_path = DATA_DIR / f"transition_matrix_{year}.feather"
+            if not p_path.exists():
+                raise FileNotFoundError(f"缺少数据文件: {p_path}")
+            _YEARLY_MATRIX_CACHE[year] = pd.read_feather(p_path)
+        return _YEARLY_MATRIX_CACHE[year]
 
 
 def get_transition_matrix(P):
@@ -211,18 +249,11 @@ def get_conf_inv(Q_95, index, num_cluster, tran_m, P, sigma_squared_array):
 
 
 def control(start_year, end_year, field=None, min_num=5, exp_threshold=0.02, Q_95=3.9):
-    pub_num_path = DATA_DIR / "pub_num.parquet"
-    if not pub_num_path.exists():
-        raise FileNotFoundError(f"缺少数据文件: {pub_num_path}")
-
-    pub_num = pd.read_parquet(pub_num_path)
+    pub_num = _get_pub_num_cached()
     P = None
     for year in range(start_year, end_year + 1):
-        p_path = DATA_DIR / f"transition_matrix_{year}.feather"
-        if not p_path.exists():
-            raise FileNotFoundError(f"缺少数据文件: {p_path}")
-        yearly = pd.read_feather(p_path)
-        P = yearly if P is None else (P + yearly)
+        yearly = _get_yearly_matrix_cached(year)
+        P = yearly.copy() if P is None else (P + yearly)
 
     if field:
         if isinstance(field, (list, tuple, set, pd.Index, np.ndarray)):
